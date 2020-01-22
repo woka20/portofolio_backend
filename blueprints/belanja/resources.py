@@ -12,6 +12,7 @@ from json.encoder import JSONEncoder
 from PIL import Image
 import io
 from io import BytesIO
+import base64
 
 bp_belanja=Blueprint("belanja", __name__)
 api=Api(bp_belanja)
@@ -208,7 +209,7 @@ class Confirmation(Resource):
         
         #Uploaded transfer receipt in img format will be converted in to Hexbinary by using getvalue()
         #args['bukti Pembayaran'] is the image name and path to be uploaded
-        file_bukti=Image.open(args['bukti_pembayaran'])
+        file_bukti=Image.open(BytesIO(base64.b64decode(args['bukti_pembayaran'])))
         output=io.BytesIO()
         file_bukti.save(output, format="JPEG")
         hex_data=output.getvalue()
@@ -232,7 +233,7 @@ class Confirmation(Resource):
         return {'status':"Bukti Pembayaran Berhasil Disubmit. Tunggu verifikasi dari kami"}, 200
 
 
-    def options(self):
+    def options(self, id):
         return {'status': 'OK'},200
 
 
