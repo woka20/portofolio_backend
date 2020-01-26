@@ -182,7 +182,7 @@ class ClientAdmin(Resource):
         else:
             qry.full_name=args['full_name']
         
-        if args['telp'] is 0:
+        if args['telp'] is "":
             qry.telp=qry.telp
         else:
             qry.telp=args['telp']

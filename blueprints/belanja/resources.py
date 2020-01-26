@@ -13,7 +13,10 @@ from PIL import Image
 import io
 from io import BytesIO
 import base64
-##
+from binascii import unhexlify, b2a_base64
+from base64 import b64decode
+import codecs
+
 bp_belanja=Blueprint("belanja", __name__)
 api=Api(bp_belanja)
 
@@ -89,8 +92,6 @@ class Cart(Resource):
             
         elif qry_order is not None:
             return {'status':"You haven't paid another order, paid it first to make new order"}, 403
- 
-            
         else:
             shop=Shoppings(id_1, args['product_id'], args['quantity'], args['kurir'], ongkir, 
                           ongkir+(args['quantity']*qry_product.harga), args['payment'], args['bukti_pembayaran'])
@@ -106,7 +107,7 @@ class Cart(Resource):
         id_1=get_jwt_claims()['id']
         
         #Creating dictionary by retrieve ordered product's detail from Products's Database and insert to shopping detail
-        qry=Shoppings.query.filter_by(id=id_1).first()
+        qry=Shoppings.query.filter_by(user_id=id_1).first()
         daftar=[]
         print("OOOOOOOOOOO",id_1)
         marshalCart=marshal(qry, Shoppings.response_fields)
@@ -142,10 +143,10 @@ class Checkout(Resource):
         parser.add_argument('p', location='args', type=int, default=1)
         args=parser.parse_args()
 
-        qry=Shoppings.query.filter_by(user_id=get_jwt_claims()['id'])
+        qry=Shoppings.query
     
         if qry is None:
-              return {'status':'NOT FOUND'}, 403
+              return {'status':'NOT FOUND'}, 404
 
         offset=(args['rp']*args['p'])-args['rp']
         
@@ -173,7 +174,8 @@ class Checkout(Resource):
         
         args=parser.parse_args()
         
-        qry=Shoppings.query.get(args['id'])
+        qry=Shoppings.query.filter_by(id=args['id']).first()
+       
         if qry is None:
             return {'status':'NOT FOUND'}, 404
         
@@ -182,9 +184,11 @@ class Checkout(Resource):
             qry.payment=qry.payment
         else:
             qry.payment=args['payment']   
-
+        
+        db.session.commit()
+       
         return marshal(qry, Shoppings.response_fields), 200
-
+        
      def options(self):
         return {'status': 'OK'},200
             
@@ -206,23 +210,33 @@ class Confirmation(Resource):
         args=parser.parse_args()
 
         qry=Shoppings.query.filter_by(user_id=get_jwt_claims()['id']).all()
-        
+       
         #Uploaded transfer receipt in img format will be converted in to Hexbinary by using getvalue()
-        #args['bukti Pembayaran'] is the image name and path to be uploaded
-        file_bukti=Image.open(BytesIO(base64.b64decode(args['bukti_pembayaran'])))
+     
+        header,encode=args['bukti_pembayaran'].split(",",1)
+  
+        data=b64decode(encode)
+      
+        with open("lapo1.jpg", "wb") as f:
+            f.write(data)
+
+        file_bukti=Image.open("lapo1.jpg")
         output=io.BytesIO()
-        file_bukti.save(output, format="JPEG")
+        file_bukti1=file_bukti.convert("RGB")
+        file_bukti1.save(output, format="JPEG")
         hex_data=output.getvalue()
         
+        if len(hex_data)> 65535:
+            return {'status': "file image is to large"}, 403
+        
+       
 
         #Hex will be stored in database as a BLOB, so it can be decode to image again to be verified by admin regarding 
         #client payment status
         for i in qry:
-            if i.id==id:
-                if args['bukti_pembayaran'] is None:
-                    i.bukti_pembayaran=i.bukti_pembayaran
-                else:
+            if i.user_id==get_jwt_claims()['id']:
                     i.bukti_pembayaran=hex_data
+                    
             else:
               return {'status':'NOT FOUND'}, 404
         
@@ -232,8 +246,15 @@ class Confirmation(Resource):
 
         return {'status':"Bukti Pembayaran Berhasil Disubmit. Tunggu verifikasi dari kami"}, 200
 
+    def get (self,id):
+        qry=Shoppings.query.get(id)
+        if qry.bukti_pembayaran is not None:
+            halo=base64.b64encode(qry.bukti_pembayaran)
+            qry.bukti_pembayaran=halo
 
-    def options(self, id):
+        return marshal(qry, Shoppings.response_fields),200
+
+    def options(self,id):
         return {'status': 'OK'},200
 
 

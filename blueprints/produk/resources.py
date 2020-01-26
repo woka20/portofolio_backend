@@ -63,7 +63,7 @@ class ProductResource(Resource):
         args=parser.parse_args()
         
         qry=Products.query.get(id)
-
+        print("KLKL", qry)
         if qry is None:
             return {'status':'NOT FOUND'}, 404
         
@@ -200,7 +200,7 @@ class UsedResource(Resource):
         parser.add_argument('nama_produk', location="json")
         parser.add_argument('category', location='json')
         parser.add_argument('harga', type=int, location='json')
-        parser.add_argument('stok', location='json')
+        parser.add_argument('stok', type=int, location='json')
         parser.add_argument('berat', location='json')
         parser.add_argument('gambar', location='json')
         parser.add_argument('preview_1', location='json')
@@ -209,8 +209,12 @@ class UsedResource(Resource):
         parser.add_argument('description', location="json")
 
         args=parser.parse_args()
-
-        qry=Products.query.filter_by(user_id=get_jwt_claims()['id']).all()
+        try:
+            if get_jwt_claims()['id'] is not None:
+                qry=Products.query.filter_by(user_id=get_jwt_claims()['id']).all()
+               
+        except:
+             qry=Products.query.filter_by(id=id).all()
 
          #If client leave some field empty, the designated empty field won't be null
         for i in qry:

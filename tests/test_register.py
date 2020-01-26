@@ -7,6 +7,7 @@ from blueprints.konsumen.resources import get_rajaongkir
 from blueprints.belanja.resources import post_rajaongkir
 import requests
 from unittest import mock
+import base64
 
 
 #Mocking GET RajaOngkir
@@ -35,10 +36,11 @@ def mocked_requests_post(*args, **kwargs):
 		if args[0] == "https://api.rajaongkir.com/starter/cost":
 			return MockResponse({"Biaya":40000}, 200)
 
-class TestClient():
-    reset_db()
 #===============================================================================================================
 #REGISTER and LOGIN
+
+class TestClient():
+    reset_db()
 
 
     #TEST REGISTER [POST] DI WEBSITE
@@ -57,6 +59,8 @@ class TestClient():
 
         res_json=json.loads(res.data)
         assert res.status_code==200
+
+   
 
      #TEST REGISTER [POST] IN WEBSITE WITH EXISTED USERNAME  
     def test_post_register_invalid(self,client):
@@ -109,6 +113,7 @@ class TestClient():
             content_type='application/json')
             
             assert res.status_code==403
+    
      
 
     #Client GET His Detail From Database 
@@ -155,7 +160,11 @@ class TestClient():
     def test_external_update_customer_without_input(self,client):
         token=create_token(False)
 
-        data={}
+        data={"full_name": "",
+              "telp": "",
+              "email": "",
+              "kota":""
+        }
 
         res= client.put('/user/2',
         json=data,
@@ -183,6 +192,24 @@ class TestClient():
         content_type='application/json')
             
         assert res.status_code==200
+    
+    def test_admin_register_same_email(self,client):
+        token=create_token(True)
+
+        data=dict(
+            client_name='atta',
+            client_password='rantang',
+            full_name='Yudi',
+            telp='098765678',
+            email='atta@management.com',
+            kota='Bandung',
+        )
+        if token is None:
+            res= client.post('/user/admin/5',
+            json=data,
+            content_type='application/json')
+            
+            assert res.status_code==403
     
     #Admin GET customer data list
     def test_admin_get_customer(self,client):
@@ -228,7 +255,8 @@ class TestClient():
     def test_admin_update_customer_without_input(self,client):
         token=create_token()
 
-        data={}
+        data={'telp':"",
+            'email':"atta1@root.com"}
 
         res= client.put('/user/admin/4',
         json=data,
@@ -247,6 +275,7 @@ class TestClient():
         content_type='application/json')
             
         assert res.status_code==200
+
 
     #=======================================================================================================
     #ACCESS PRODUCT 
@@ -424,7 +453,17 @@ class TestClient():
     def test_external_update_product_without_input(self,client):
         token=create_token(False)
 
-        data={}
+        data={"nama_produk": "",
+              "category": "",
+              "harga":0,
+              "stok":0,
+              "berat":"",
+              "gambar":"",
+              "preview_1":"",
+              "preview_2":"",
+              "preview_3":"",
+              "description":"",
+        }
 
         res= client.put('/products/used/2',
         json=data,
@@ -451,6 +490,73 @@ class TestClient():
             
         assert res.status_code==200
 
+    def test_admin_add_product_3(self,client):
+        token=create_token()
+
+        data={
+            'nama_produk': "RG Wing Gundam Zero EW",
+            'category':"Real Grade",
+            'harga':400000,
+            'stok':5,
+            'berat':2000,
+            'gambar':"https://na.gundam.info/content/dam/gundam/gundaminfo/old/na/image/thumbnail/2014/12/25/20141225152536-60294.jpg",
+            'preview_1':"https://na.gundam.info/content/dam/gundam/gundaminfo/old/na/image/thumbnail/2014/12/25/20141225152550-61824.jpg",
+            'preview_2':"https://na.gundam.info/content/dam/gundam/gundaminfo/old/na/image/thumbnail/2014/12/25/20141225152601-39981.jpg",
+            'preview_3':"https://na.gundam.info/content/dam/gundam/gundaminfo/old/na/image/thumbnail/2014/12/25/20141225152923-96005.jpg",
+            'description':"The Wing Gundam Zero is the first New Mobile Report Gundam Wing: Endless Waltz suit to appear in RG! Its wings, designed for atmospheric reentry, are modeled as layered ablative heat absorption panels, and a lively, detailed sculpts combined with flexible positioning of each subwing create a voluminous, almost angelic span. "
+        }
+
+        res= client.post('/products/premium/1',
+        json=data,
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+    
+    def test_internal_update_product_without_input(self,client):
+        token=create_token(True)
+
+        data={"nama_produk": "",
+              "category": "",
+              "harga":0,
+              "stok":0,
+              "berat":0,
+              "gambar":"",
+              "preview_1":"",
+              "preview_2":"",
+              "preview_3":"",
+              "description":"",
+        }
+
+        res= client.put('/products/premium/3',
+        json=data,
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+        
+    def test_internal_update_user_product_without_input(self,client):
+        token=create_token(True)
+
+        data={"nama_produk": "",
+              "category": "",
+              "harga":0,
+              "stok":0,
+              "berat":0,
+              "gambar":"",
+              "preview_1":"",
+              "preview_2":"",
+              "preview_3":"",
+              "description":"",
+        }
+
+        res= client.put('/products/used/11',
+        json=data,
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
 
     #=============================================================================================================
     # SHOPPING CART
@@ -460,7 +566,7 @@ class TestClient():
         token=create_token(False)
 
         data=dict(
-            product_id= 2,
+            product_id=2,
             kurir="jne",
             quantity=1,
         )
@@ -471,6 +577,38 @@ class TestClient():
         content_type='application/json')
             
         assert res.status_code==200
+
+    def test_external_add_shopping_cart_exceeds_stock(self,client):
+        token=create_token(False)
+
+        data=dict(
+            product_id=2,
+            kurir="jne",
+            quantity=5,
+        )
+
+        res= client.post('/shop/cart',
+        query_string=data,
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==403
+
+    def test_external_add_shopping_cart_exceeds_weight(self,client):
+        token=create_token(False)
+
+        data=dict(
+            product_id=2,
+            kurir="jne",
+            quantity=5,
+        )
+
+        res= client.post('/shop/cart',
+        query_string=data,
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==403
 
 
     #Client (Non-admin) GET his checkout detail 
@@ -496,7 +634,12 @@ class TestClient():
     #Client (Non-admin) POST Transfer Receipt
     def test_update_bukti_pembayaran(self,client):
         token=create_token(False)
-        data={'bukti_pembayaran': "dummy.jpg"}
+     
+        with open("dummy.jpg", "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            encoded_string2="data:image/jpg;base64,"+encoded_string.decode('utf-8')
+        data={'id':1,
+        'bukti_pembayaran': encoded_string2}
 
         res= client.put('/shop/confirm/1',
         json=data,
@@ -513,6 +656,15 @@ class TestClient():
 
         res= client.put('/shop/checkout',
         json=data,
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+    def test_get_shop_cart(self,client):
+        token=create_token(False)
+        
+        res= client.get('/shop/confirm/1',
         headers={'Authorization':'Bearer ' + token},
         content_type='application/json')
             
@@ -535,6 +687,79 @@ class TestClient():
         token=create_token(False)
 
         res= client.delete('/products/used/3',
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+#====================================================================================================================
+#OPTIONS
+    def test_options_konsumen(self,client):
+        token=create_token(False)
+
+
+        res= client.options('/user/list',
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+    def test_options_register(self,client):
+        token=create_token(False)
+
+
+        res= client.options('/user/register',
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+    def test_options_clientAdmin(self,client):
+        token=create_token(False)
+
+
+        res= client.options('/user/admin/2',
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+    def test_options_clientResource(self,client):
+        token=create_token(False)
+
+
+        res= client.options('/user/2',
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+    
+    def test_options_shopCart(self,client):
+        token=create_token(False)
+
+
+        res= client.options('/shop/cart',
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+    def test_options_confirmID(self,client):
+        token=create_token(False)
+
+
+        res= client.options('/shop/confirm/1',
+        headers={'Authorization':'Bearer ' + token},
+        content_type='application/json')
+            
+        assert res.status_code==200
+
+    def test_options_checkout(self,client):
+        token=create_token(False)
+
+
+        res= client.options('/shop/checkout',
         headers={'Authorization':'Bearer ' + token},
         content_type='application/json')
             
