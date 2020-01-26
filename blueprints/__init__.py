@@ -26,7 +26,7 @@ try:
     if env=="testing":
         app.config["SQLALCHEMY_DATABASE_URI"]='mysql+pymysql://root:@localhost/TEST_DATABASE'
     else:
-        app.config["SQLALCHEMY_DATABASE_URI"]='mysql+pymysql://root:@localhost/REAL_DATABASE'
+        app.config["SQLALCHEMY_DATABASE_URI"]='mysql+pymysql://root:goal#4567@real-database.c95e4ltyyqq7.ap-southeast-1.rds.amazonaws.com:3306/real_database'
 except Exception as e:
     raise e
 
