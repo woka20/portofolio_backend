@@ -97,32 +97,3 @@ def after_request(response):
             })
         )
     return response
-# @app.after_request
-# def after_request(response):
-#     if response.status_code==200:
-#         try:
-#             requestData=request.get_json()
-#         except:
-#             requestData=request.args.to_dict()
-#         app.logger.info('REQUEST_LOG\t%s', json_dumps({
-#             'status_code':response.status_code,
-#             'method':request.method,
-#             'code':response.status,
-#             'uri':request.full_path,
-#             'request':requestData,
-#             'response':json.loads(response.data.decode('utf-8'))
-#             }))
-#     else:
-#         try:
-#             requestData=request.get_json()
-#         except:
-#             requestData=request.args.to_dict()
-#         app.logger.info(json.dumps({
-#             'status_code':response.status_code,
-#             'method':request.method,
-#             'uri':request.full_path,
-#             'code':response.status,
-#             'request':requestData,
-#             'response': json.loads(esponse.data.decode('utf-8'))
-#             }))
-#     return response
